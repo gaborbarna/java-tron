@@ -260,6 +260,9 @@ public class FullNodeHttpApiService extends HttpService {
   private GetAccountBalanceServlet getAccountBalanceServlet;
 
   @Autowired
+  private GetAccountBalanceBatchServlet getAccountBalanceBatchServlet;
+
+  @Autowired
   private GetBlockBalanceServlet getBlockBalanceServlet;
 
   @Autowired
@@ -493,6 +496,8 @@ public class FullNodeHttpApiService extends HttpService {
 
       context.addServlet(new ServletHolder(getAccountBalanceServlet),
           "/wallet/getaccountbalance");
+      context.addServlet(new ServletHolder(getAccountBalanceBatchServlet),
+              "/wallet/getaccountbalancebatch");
       context.addServlet(new ServletHolder(getBlockBalanceServlet),
           "/wallet/getblockbalance");
       context.addServlet(new ServletHolder(getBurnTrxServlet), "/wallet/getburntrx");

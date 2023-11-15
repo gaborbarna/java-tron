@@ -51,6 +51,16 @@ service Wallet {
     };
   };
 
+  rpc GetAccountBalanceBatch (AccountBalanceBatchRequest) returns (AccountBalanceBatchResponse) {
+    option (google.api.http) = {
+      post: "/wallet/getaccountbalancebatch"
+      body: "*"
+      additional_bindings {
+        get: "/wallet/getaccountbalancebatch"
+      }
+    };
+  };
+
   rpc GetBlockBalanceTrace (BlockBalanceTrace.BlockIdentifier) returns (BlockBalanceTrace) {
     option (google.api.http) = {
       post: "/wallet/getblockbalancetrace"
