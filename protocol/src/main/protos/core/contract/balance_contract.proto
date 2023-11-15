@@ -82,18 +82,11 @@ message AccountBalanceResponse {
 }
 
 message AccountBalanceBatchRequest {
-  repeated AccountIdentifier account_identifiers = 1;
-  BlockBalanceTrace.BlockIdentifier block_identifier = 2;
-}
-
-message AccountWithBalance {
-  AccountIdentifier account_identifier = 1;
-  int64 balance = 2;
-  BlockBalanceTrace.BlockIdentifier block_identifier = 3;
+  repeated AccountBalanceRequest batch = 1;
 }
 
 message AccountBalanceBatchResponse {
-  repeated AccountWithBalance balances = 1;
+  repeated AccountBalanceResponse batch = 1;
 }
 
 message FreezeBalanceV2Contract {
