@@ -4206,44 +4206,19 @@ public class Wallet {
   public BalanceContract.AccountBalanceBatchResponse getAccountBalanceBatch(
           BalanceContract.AccountBalanceBatchRequest request
   ) throws ItemNotFoundException {
-    List<BalanceContract.AccountBalanceRequest> accountBalanceRequests = request.getBatchList();
-
-    BlockIndexStore blockIndexStore = chainBaseManager.getBlockIndexStore();
-    AccountTraceStore accountTraceStore = chainBaseManager.getAccountTraceStore();
-
-    Map<BlockBalanceTrace.BlockIdentifier, List<BalanceContract.AccountBalanceRequest>> groupedAccountBalanceRequests =
-            accountBalanceRequests.stream().collect(Collectors.groupingBy(r -> r.getBlockIdentifier()));
-
     try {
-      List<BalanceContract.AccountBalanceResponse> balanceResponses = groupedAccountBalanceRequests.entrySet().stream().flatMap(blockIdentifier2AccountBalanceRequests -> {
-        BlockBalanceTrace.BlockIdentifier blockIdentifier = blockIdentifier2AccountBalanceRequests.getKey();
-        checkBlockIdentifier(blockIdentifier);
-
-        List<BalanceContract.AccountIdentifier> accountIdentifiers =
-                blockIdentifier2AccountBalanceRequests.getValue().stream().map(req -> req.getAccountIdentifier()).collect(Collectors.toList());
-        BlockId blockId;
+      List<BalanceContract.AccountBalanceResponse> balanceResponses = request.getBatchList().stream().map(accountBalanceRequest -> {
         try {
-          blockId = blockIndexStore.get(blockIdentifier.getNumber());
+          return getAccountBalance(accountBalanceRequest);
         } catch (ItemNotFoundException ex) {
           throw new RuntimeException(ex);
         }
-        if (!blockId.getByteString().equals(blockIdentifier.getHash())) {
-          throw new IllegalArgumentException("number and hash do not match");
-        }
-
-        return accountIdentifiers.stream().map(accountIdentifier -> {
-          try {
-            return buildAccountBalanceResponse(accountIdentifier, blockIdentifier, blockIndexStore, accountTraceStore);
-          } catch (ItemNotFoundException ex) {
-            throw new RuntimeException(ex);
-          }
-        });
       }).collect(Collectors.toList());
 
       BalanceContract.AccountBalanceBatchResponse.Builder batchBuilder = BalanceContract.AccountBalanceBatchResponse.newBuilder();
-
       batchBuilder.addAllBatch(balanceResponses);
       return batchBuilder.build();
+
     } catch (RuntimeException ex) {
       if (ex.getCause() instanceof ItemNotFoundException) {
         throw (ItemNotFoundException) ex.getCause();
@@ -4253,35 +4228,11 @@ public class Wallet {
     }
   }
 
-  private BalanceContract.AccountBalanceResponse buildAccountBalanceResponse(
-          BalanceContract.AccountIdentifier accountIdentifier,
-          BlockBalanceTrace.BlockIdentifier blockIdentifier,
-          BlockIndexStore blockIndexStore,
-          AccountTraceStore accountTraceStore
-  ) throws ItemNotFoundException {
-    checkAccountIdentifier(accountIdentifier);
-
-    Pair<Long, Long> pair = accountTraceStore.getPrevBalance(
-        accountIdentifier.getAddress().toByteArray(), blockIdentifier.getNumber());
-    BalanceContract.AccountBalanceResponse.Builder builder =
-        BalanceContract.AccountBalanceResponse.newBuilder();
-    if (pair.getLeft() == blockIdentifier.getNumber()) {
-      builder.setBlockIdentifier(blockIdentifier);
-    } else {
-      BlockId blockId = blockIndexStore.get(pair.getLeft());
-      builder.setBlockIdentifier(BlockBalanceTrace.BlockIdentifier.newBuilder()
-          .setNumber(pair.getLeft())
-          .setHash(blockId.getByteString()));
-    }
-
-    builder.setBalance(pair.getRight());
-    return builder.build();
-  }
-
   public BalanceContract.AccountBalanceResponse getAccountBalance(
       BalanceContract.AccountBalanceRequest request)
       throws ItemNotFoundException {
     BalanceContract.AccountIdentifier accountIdentifier = request.getAccountIdentifier();
+    checkAccountIdentifier(accountIdentifier);
     BlockBalanceTrace.BlockIdentifier blockIdentifier = request.getBlockIdentifier();
     checkBlockIdentifier(blockIdentifier);
 
@@ -4292,7 +4243,21 @@ public class Wallet {
       throw new IllegalArgumentException("number and hash do not match");
     }
 
-    return buildAccountBalanceResponse(accountIdentifier, blockIdentifier, blockIndexStore, accountTraceStore);
+    Pair<Long, Long> pair = accountTraceStore.getPrevBalance(
+            accountIdentifier.getAddress().toByteArray(), blockIdentifier.getNumber());
+    BalanceContract.AccountBalanceResponse.Builder builder =
+            BalanceContract.AccountBalanceResponse.newBuilder();
+    if (pair.getLeft() == blockIdentifier.getNumber()) {
+      builder.setBlockIdentifier(blockIdentifier);
+    } else {
+      blockId = blockIndexStore.get(pair.getLeft());
+      builder.setBlockIdentifier(BlockBalanceTrace.BlockIdentifier.newBuilder()
+              .setNumber(pair.getLeft())
+              .setHash(blockId.getByteString()));
+    }
+
+    builder.setBalance(pair.getRight());
+    return builder.build();
   }
 
   public BalanceContract.BlockBalanceTrace getBlockBalance(
