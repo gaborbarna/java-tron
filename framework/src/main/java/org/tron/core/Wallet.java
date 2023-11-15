@@ -4268,10 +4268,10 @@ public class Wallet {
     if (pair.getLeft() == blockIdentifier.getNumber()) {
       builder.setBlockIdentifier(blockIdentifier);
     } else {
-      BlockId blockIdNew = blockIndexStore.get(pair.getLeft());
+      BlockId blockId = blockIndexStore.get(pair.getLeft());
       builder.setBlockIdentifier(BlockBalanceTrace.BlockIdentifier.newBuilder()
           .setNumber(pair.getLeft())
-          .setHash(blockIdNew.getByteString()));
+          .setHash(blockId.getByteString()));
     }
 
     builder.setBalance(pair.getRight());
