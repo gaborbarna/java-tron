@@ -4204,13 +4204,14 @@ public class Wallet {
   }
 
   public BalanceContract.AccountBalanceBatchResponse getAccountBalanceBatch(
-          BalanceContract.AccountBalanceBatchRequest request
-  ) throws ItemNotFoundException {
+      BalanceContract.AccountBalanceBatchRequest request)
+      throws ItemNotFoundException {
     try {
       List<BalanceContract.AccountBalanceResponse> balanceResponses = request.getBatchList().stream().map(accountBalanceRequest -> {
         try {
           return getAccountBalance(accountBalanceRequest);
         } catch (ItemNotFoundException ex) {
+          // We need to wrap checked exceptions in lambdas, and later unpack it
           throw new RuntimeException(ex);
         }
       }).collect(Collectors.toList());
@@ -4244,16 +4245,16 @@ public class Wallet {
     }
 
     Pair<Long, Long> pair = accountTraceStore.getPrevBalance(
-            accountIdentifier.getAddress().toByteArray(), blockIdentifier.getNumber());
+        accountIdentifier.getAddress().toByteArray(), blockIdentifier.getNumber());
     BalanceContract.AccountBalanceResponse.Builder builder =
-            BalanceContract.AccountBalanceResponse.newBuilder();
+        BalanceContract.AccountBalanceResponse.newBuilder();
     if (pair.getLeft() == blockIdentifier.getNumber()) {
       builder.setBlockIdentifier(blockIdentifier);
     } else {
       blockId = blockIndexStore.get(pair.getLeft());
       builder.setBlockIdentifier(BlockBalanceTrace.BlockIdentifier.newBuilder()
-              .setNumber(pair.getLeft())
-              .setHash(blockId.getByteString()));
+          .setNumber(pair.getLeft())
+          .setHash(blockId.getByteString()));
     }
 
     builder.setBalance(pair.getRight());
